@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spiral Wave - Galería de Equipos</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0f0c13; 
+            --accent-blue: #00e5ff;
+            --accent-purple: #bf5af2; 
+            --accent-gradient: linear-gradient(135deg, #00e5ff 0%, #bf5af2 100%);
+            --whatsapp-green: #25D366;
+            --text-light: #f5f5f7;
+            --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        @media (min-width: 769px) { body { cursor: none; } }
+
+        html { 
+            scroll-behavior: smooth; 
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Open Sans', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* --- Background & Effects --- */
+        .spline-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100vh;
+            z-index: -4;
+            background: radial-gradient(circle at center, #1a171e 0%, #050307 100%);
+        }
+        .spline-container iframe { width: 100%; height: 100%; border: none; opacity: 0.4; }
+
+        .tech-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -3;
+            pointer-events: none;
+            background: linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .content-dimmer {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -2;
+            background: rgba(15, 12, 19, 0.2);
+            backdrop-filter: blur(0px);
+            transition: var(--transition-smooth);
+            pointer-events: none;
+        }
+
+        /* --- Custom Cursor --- */
+        #custom-cursor {
+            width: 10px; height: 10px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 0 15px var(--accent-blue);
+            transform: translate3d(-50%, -50%, 0);
+        }
+        #cursor-follower {
+            width: 35px; height: 35px;
+            border: 1.2px solid var(--accent-purple);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9998;
+            transition: transform 0.1s ease-out;
+            transform: translate3d(-50%, -50%, 0);
+        }
+
+        /* --- Navigation Progress --- */
+        #progress-container { position: fixed; top: 0; z-index: 1000; width: 100%; height: 3px; }
+        #progress-bar { height: 100%; background: var(--accent-gradient); width: 0%; transition: width 0.1s; }
+
+        /* --- Sections --- */
+        header#home {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .hero-title {
+            font-family: 'Montserrat';
+            font-size: clamp(2.5rem, 12vw, 5.5rem);
+            font-weight: 900;
+            line-height: 0.9;
+            text-transform: uppercase;
+            filter: drop-shadow(0 0 20px rgba(191, 90, 242, 0.3));
+        }
+
+        section { padding: 80px 8%; position: relative; z-index: 5; }
+        .section-header { margin-bottom: 50px; border-left: 3px solid var(--accent-blue); padding-left: 15px; }
+        .section-title { font-family: 'Montserrat'; font-size: clamp(1.8rem, 6vw, 2.5rem); font-weight: 900; text-transform: uppercase; }
+
+        /* --- Cards Grid --- */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .equipment-card {
+            background: rgba(30, 27, 35, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .equipment-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-blue);
+            background: rgba(40, 35, 45, 0.95);
+        }
+
+        .qty-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--accent-gradient);
+            color: #000;
+            font-size: 0.65rem;
+            font-weight: 900;
+            padding: 4px 10px;
+            border-radius: 50px;
+            z-index: 2;
+        }
+
+        .img-wrapper {
+            width: 100%; height: 200px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .img-wrapper img { max-width: 85%; max-height: 85%; object-fit: contain; }
+
+        .card-info { padding: 20px; }
+        .card-info h3 { font-family: 'Montserrat'; font-size: 0.95rem; margin-bottom: 10px; color: #fff; }
+        .card-info p { font-size: 0.8rem; color: #aaa; }
+
+        /* --- Modal System --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #1a171e;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 25px;
+            border: 1px solid var(--accent-blue);
+            padding: 35px;
+            position: relative;
+            transform: scale(0.9);
+            opacity: 0;
+            transition: 0.3s var(--transition-smooth);
+        }
+
+        .modal-overlay.active { display: flex; }
+        .modal-overlay.active .modal-content { transform: scale(1); opacity: 1; }
+
+        .close-modal {
+            position: absolute; top: 20px; right: 20px;
+            background: none; border: none; color: #fff; cursor: pointer;
+        }
+
+        .modal-title { font-family: 'Montserrat'; font-size: 1.4rem; margin-bottom: 20px; color: var(--accent-blue); }
+        .modal-specs { list-style: none; }
+        .modal-specs li { 
+            padding: 12px 0; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .modal-specs li span:first-child { color: var(--accent-purple); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; }
+
+        /* --- Footer & Contact --- */
+        .whatsapp-float {
+            position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px;
+            background: var(--whatsapp-green); color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; z-index: 1000;
+            box-shadow: 0 10px 25px rgba(37, 211, 102, 0.3);
+        }
+
+        footer { padding: 60px 8%; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); }
+        .footer-link { 
+            color: #fff; text-decoration: none; font-weight: 700; padding: 15px 35px;
+            border-radius: 50px; border: 1px solid var(--accent-blue);
+            background: rgba(0, 229, 255, 0.05); font-size: 0.8rem; letter-spacing: 2px;
+        }
+
+        .reveal { opacity: 0; transform: translateY(20px); transition: 0.6s ease; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 768px) {
+            section { padding: 40px 6%; }
+            .img-wrapper { height: 160px; }
+            #custom-cursor, #cursor-follower { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="spline-container">
+        <iframe src="https://my.spline.design/flow-LGrVP4PoI0zBelnQEAmRcdhD/" loading="lazy"></iframe>
+    </div>
+
+    <div class="tech-overlay"></div>
+    <div class="content-dimmer" id="content-dimmer"></div>
+    <div id="custom-cursor"></div>
+    <div id="cursor-follower"></div>
+    <div id="progress-container"><div id="progress-bar"></div></div>
+
+    <header id="home">
+        <div class="hero-text reveal">
+            <h1 class="hero-title">EQUIPAMIENTO<br><span style="color: var(--accent-purple);">SPIRAL WAVE</span></h1>
+            <p style="margin-top: 20px; font-size: 0.8rem; letter-spacing: 4px; opacity: 0.7;">TOCA CUALQUIER EQUIPO PARA VER DETALLES</p>
+        </div>
+    </header>
+
+    <!-- SECTION AUDIO -->
+    <section id="audio">
+        <div class="section-header reveal">
+            <h2 class="section-title">Sonido Profesional</h2>
+        </div>
+        <div class="grid-container">
+            <!-- Beta Three -->
+            <div class="equipment-card reveal" onclick="openDetails('n12a')">
+                <span class="qty-badge">1 UNIDAD</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1hMa4dBLom8eFKZMW7YPSSJZ5OEtV4y3m" alt="Beta Three"></div>
+                <div class="card-info">
+                    <h3>Beta Three N12A</h3>
+                    <p>Sonido cristalino de alta definición.</p>
+                </div>
+            </div>
+            <!-- Subwoofer -->
+            <div class="equipment-card reveal" onclick="openDetails('eb118a')">
+                <span class="qty-badge">1 UNIDAD</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1bqRpMSlyFxyydr2XbVmxcjrYHUo2x85p" alt="Subwoofer"></div>
+                <div class="card-info">
+                    <h3>Subwoofer EB118A</h3>
+                    <p>Potencia de bajos que se siente.</p>
+                </div>
+            </div>
+            <!-- Pioneer -->
+            <div class="equipment-card reveal" onclick="openDetails('pioneer')">
+                <span class="qty-badge">1 UNIDAD</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1rNdOrUXL7F56Ko2HKS_pSXJiX1P5BZ0U" alt="Pioneer"></div>
+                <div class="card-info">
+                    <h3>Pioneer Engine</h3>
+                    <div class="spec-item"><span class="spec-label">Interfaz</span><span class="spec-value">Mezcla fluida con efectos Pro</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION VISUALS -->
+    <section id="visuals">
+        <div class="section-header reveal">
+            <h2 class="section-title">Efectos Visuales</h2>
+        </div>
+        <div class="grid-container">
+            <div class="equipment-card reveal" onclick="openDetails('laser')">
+                <span class="qty-badge">1 UNIDAD</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1N7YgMRV3mNtazZIPM69RN4KaJCyiXbCu" alt="Laser"></div>
+                <div class="card-info">
+                    <h3>Láser RGB Dinámico</h3>
+                    <p>Animaciones espaciales en 3D.</p>
+                </div>
+            </div>
+            <div class="equipment-card reveal" onclick="openDetails('haze')">
+                <span class="qty-badge">1 UNIDAD</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1ZaOTzmygHr50JpLaiABMppiW7zqaNgLb" alt="Humo"></div>
+                <div class="card-info">
+                    <h3>Haze Machine Pro</h3>
+                    <p>Realza cada haz de luz.</p>
+                </div>
+            </div>
+            <div class="equipment-card reveal" onclick="openDetails('mirror')">
+                <span class="qty-badge">1 UNIDAD</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1qK9DhNfDZn6L-7YA9WnjaZ5s6smmqQCf" alt="Espejo"></div>
+                <div class="card-info">
+                    <h3>Espejo Infinito</h3>
+                    <p>Inmersión visual profunda.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION HARDWARE -->
+    <section id="hardware">
+        <div class="section-header reveal">
+            <h2 class="section-title">Infraestructura</h2>
+        </div>
+        <div class="grid-container">
+            <div class="equipment-card reveal" onclick="openDetails('ls20')">
+                <span class="qty-badge">2 UNIDADES</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1vGZapIK57lSBvYuxAxyP53CdDlm4zJL2" alt="Base LS-20"></div>
+                <div class="card-info">
+                    <h3>Base LS-20 PRO</h3>
+                    <p>Soporte de alta seguridad.</p>
+                </div>
+            </div>
+            <div class="equipment-card reveal" onclick="openDetails('shure')">
+                <span class="qty-badge">4 UNIDADES</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1BHiWx-AQ63o1lh7HzNKq7q1RDu6xbXos" alt="Shure"></div>
+                <div class="card-info">
+                    <h3>Shure Beta 58A</h3>
+                    <p>El estándar de voz en el mundo.</p>
+                </div>
+            </div>
+            <div class="equipment-card reveal" onclick="openDetails('truss')">
+                <span class="qty-badge">1 UNIDAD</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1auKhlRq0bbfvSxGsJet46IIpp3rBl7dY" alt="Truss"></div>
+                <div class="card-info">
+                    <h3>Estructuras Truss</h3>
+                    <p>Arquitectura para tu evento.</p>
+                </div>
+            </div>
+            <div class="equipment-card reveal" onclick="openDetails('rgb')">
+                <span class="qty-badge">2 UNIDADES</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1KZMBOnydHNDgGk45qOCoZh80050l1Hg_" alt="RGB"></div>
+                <div class="card-info">
+                    <h3>Luces Perimetrales</h3>
+                    <p>Ambiente inmersivo de color.</p>
+                </div>
+            </div>
+            <div class="equipment-card reveal" onclick="openDetails('power')">
+                <span class="qty-badge">1 UNIDAD</span>
+                <div class="img-wrapper"><img src="https://lh3.googleusercontent.com/d/1QUGZterSYmVmBe6yEFIwF3yC5IZ28nSh" alt="Power"></div>
+                <div class="card-info">
+                    <h3>Red Estabilizada</h3>
+                    <p>Energía limpia y segura.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MODAL -->
+    <div id="details-modal" class="modal-overlay" onclick="closeDetails()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="close-modal" onclick="closeDetails()"><i data-lucide="x"></i></button>
+            <h2 id="m-title" class="modal-title">Nombre del Equipo</h2>
+            <ul id="m-specs" class="modal-specs">
+                <!-- Se llena vía JS -->
+            </ul>
+        </div>
+    </div>
+
+    <a href="https://api.whatsapp.com/send?phone=573208734659" class="whatsapp-float" target="_blank">
+        <i data-lucide="message-circle" size="30"></i>
+    </a>
+
+    <footer>
+        <span style="font-family: 'Montserrat'; font-weight: 900; letter-spacing: 5px; display: block; margin-bottom: 20px;">SPIRAL WAVE</span>
+        <a href="mailto:spiraldefuego@gmail.com" class="footer-link">ENVIAR CORREO</a>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Base de datos de detalles técnicos
+        const db = {
+            'n12a': {
+                title: 'Beta Three N12A',
+                specs: [
+                    ['Potencia', '500W Continuos'],
+                    ['Conexión', 'Bluetooth y XLR Balanceado'],
+                    ['Tecnología', 'Filtro de sonido automático'],
+                    ['Peso', '18kg de alta resistencia'],
+                    ['Stock', '1 Unidad']
+                ]
+            },
+            'eb118a': {
+                title: 'Subwoofer EB118A',
+                specs: [
+                    ['Tamaño', 'Parlante de 18 Pulgadas'],
+                    ['Potencia', '800W RMS'],
+                    ['Frecuencia', 'Bajos desde 35Hz'],
+                    ['Ideal para', 'Fiestas grandes y conciertos'],
+                    ['Stock', '1 Unidad']
+                ]
+            },
+            'pioneer': {
+                title: 'Pioneer Engine',
+                specs: [
+                    ['Mezcla', 'Procesador de 4 canales'],
+                    ['Pantalla', 'Control táctil integrado'],
+                    ['Efectos', 'Eco, Filtro y Reverb Pro'],
+                    ['Entradas', 'USB, PC y Phono'],
+                    ['Stock', '1 Unidad']
+                ]
+            },
+            'laser': {
+                title: 'Láser RGB Dinámico',
+                specs: [
+                    ['Colores', 'Millones de tonos RGB'],
+                    ['Control', 'Modo rítmico automático'],
+                    ['Efectos', 'Lluvia, túnel y figuras 3D'],
+                    ['Clase', 'Láser de alta visibilidad'],
+                    ['Stock', '1 Unidad']
+                ]
+            },
+            'haze': {
+                title: 'Haze Machine Pro',
+                specs: [
+                    ['Tipo', 'Humo ligero atmosférico'],
+                    ['Calentamiento', 'Rápido (2 minutos)'],
+                    ['Fluido', 'A base de agua (seguro)'],
+                    ['Función', 'Visibilidad de rayos de luz'],
+                    ['Stock', '1 Unidad']
+                ]
+            },
+            'mirror': {
+                title: 'Espejo Infinito',
+                specs: [
+                    ['Visual', 'Túnel de luz LED'],
+                    ['Montaje', 'Portable y ligero'],
+                    ['Efecto', 'Profundidad sin fin'],
+                    ['Material', 'Vidrio templado seguro'],
+                    ['Stock', '1 Unidad']
+                ]
+            },
+            'ls20': {
+                title: 'Base LS-20 PRO',
+                specs: [
+                    ['Altura Max', '3.5 Metros'],
+                    ['Carga', 'Hasta 40kg'],
+                    ['Seguridad', 'Pasador de bloqueo doble'],
+                    ['Base', 'Trípode reforzado'],
+                    ['Stock', '2 Unidades']
+                ]
+            },
+            'shure': {
+                title: 'Shure Beta 58A',
+                specs: [
+                    ['Tipo', 'Dinámico Vocal'],
+                    ['Patrón', 'Supercardioide (sin ruido)'],
+                    ['Resistencia', 'Malla de acero endurecida'],
+                    ['Calidad', 'Estándar mundial de audio'],
+                    ['Stock', '4 Unidades']
+                ]
+            },
+            'truss': {
+                title: 'Estructuras Truss',
+                specs: [
+                    ['Material', 'Aluminio de aviación'],
+                    ['Soporte', 'Sistemas de iluminación pesada'],
+                    ['Largo', 'Modular (ajustable)'],
+                    ['Seguridad', 'Tornillería de alto grado'],
+                    ['Stock', '1 Unidad']
+                ]
+            },
+            'rgb': {
+                title: 'Luces Perimetrales',
+                specs: [
+                    ['Modo', 'Wash (baño de color)'],
+                    ['Ángulo', '120 grados de apertura'],
+                    ['Control', 'Mando a distancia'],
+                    ['Uso', 'Decoración de salones'],
+                    ['Stock', '2 Unidades']
+                ]
+            },
+            'power': {
+                title: 'Red Estabilizada',
+                specs: [
+                    ['Voltaje', '110V - 120V Constante'],
+                    ['Protección', 'Contra picos y rayos'],
+                    ['Salidas', '8 tomas protegidas'],
+                    ['Indicador', 'Voltímetro LED real'],
+                    ['Stock', '1 Unidad']
+                ]
+            }
+        };
+
+        function openDetails(id) {
+            const item = db[id];
+            document.getElementById('m-title').innerText = item.title;
+            const list = document.getElementById('m-specs');
+            list.innerHTML = '';
+            item.specs.forEach(s => {
+                list.innerHTML += `<li><span>${s[0]}</span> <span>${s[1]}</span></li>`;
+            });
+            document.getElementById('details-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDetails() {
+            document.getElementById('details-modal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Logic for cursor
+        const cursor = document.getElementById('custom-cursor');
+        const follower = document.getElementById('cursor-follower');
+        let mouseX = -100, mouseY = -100;
+        let followX = -100, followY = -100;
+
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function animate() {
+            if (window.innerWidth > 768) {
+                cursor.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;
+                followX += (mouseX - followX) * 0.1;
+                followY += (mouseY - followY) * 0.1;
+                follower.style.transform = `translate3d(${followX}px, ${followY}px, 0)`;
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Scroll logic
+        const progressBar = document.getElementById('progress-bar');
+        const dimmer = document.getElementById('content-dimmer');
+        const reveals = document.querySelectorAll('.reveal');
+
+        window.addEventListener('scroll', () => {
+            const st = window.pageYOffset;
+            const height = document.documentElement.scrollHeight - window.innerHeight;
+            progressBar.style.width = (st / height * 100) + "%";
+
+            if (st > 100) {
+                dimmer.style.backdropFilter = "blur(10px)";
+                dimmer.style.background = "rgba(15, 12, 19, 0.4)";
+            } else {
+                dimmer.style.backdropFilter = "blur(0px)";
+                dimmer.style.background = "rgba(15, 12, 19, 0.2)";
+            }
+
+            reveals.forEach(el => {
+                const rect = el.getBoundingClientRect();
+                if (rect.top < window.innerHeight * 0.9) {
+                    el.classList.add('active');
+                }
+            });
+        }, { passive: true });
+    </script>
+</body>
+</html>
